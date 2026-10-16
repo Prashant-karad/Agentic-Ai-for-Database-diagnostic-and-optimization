@@ -1,0 +1,12 @@
+# Secrets: real passwords and keys must never go to GitHub
+.env
+
+# Python creates these automatically; no need to save them
+__pycache__/
+*.pyc
+
+# Virtual environment (installed packages), can be recreated anytime
+.venv/
+
+# Test tool cache
+.pytest_cache/
