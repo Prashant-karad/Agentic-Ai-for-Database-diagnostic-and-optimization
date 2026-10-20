@@ -51,3 +51,11 @@ def load_llm_settings(env_file: Path = PROJECT_ROOT / ".env") -> LLMSettings:
         api_key=_require("LLM_API_KEY"),
         model=_require("LLM_MODEL"),
     )
+
+
+
+
+def load_sandbox_db_url(env_file: Path = PROJECT_ROOT / ".env") -> str:
+    """Connection URL of the sandbox database (the copy where fixes are tested)."""
+    load_dotenv(env_file)
+    return _require("SANDBOX_DB_URL")

@@ -2,8 +2,7 @@
 
 import pytest
 
-from dbagent.core.config import ConfigError, load_llm_settings, load_settings
-
+from dbagent.core.config import ConfigError, load_llm_settings, load_sandbox_db_url, load_settings
 
 def test_reads_url_from_env_file(tmp_path, monkeypatch):
     monkeypatch.delenv("MAIN_DB_URL", raising=False)
@@ -41,3 +40,13 @@ def test_missing_llm_key_raises_clear_error(tmp_path, monkeypatch):
 
     with pytest.raises(ConfigError, match="LLM_API_KEY"):
         load_llm_settings(env_file)
+
+
+
+
+def test_reads_sandbox_url(tmp_path, monkeypatch):
+    monkeypatch.delenv("SANDBOX_DB_URL", raising=False)
+    env_file = tmp_path / ".env"
+    env_file.write_text("SANDBOX_DB_URL=postgresql://u:p@localhost:5433/shop\n")
+
+    assert load_sandbox_db_url(env_file) == "postgresql://u:p@localhost:5433/shop"
