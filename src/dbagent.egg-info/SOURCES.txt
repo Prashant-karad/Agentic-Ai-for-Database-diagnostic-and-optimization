@@ -8,5 +8,17 @@ src/dbagent.egg-info/requires.txt
 src/dbagent.egg-info/top_level.txt
 src/dbagent/agents/__init__.py
 src/dbagent/agents/query_optimizer/__init__.py
+src/dbagent/agents/query_optimizer/detector.py
+src/dbagent/agents/query_optimizer/plan_analyzer.py
 src/dbagent/core/__init__.py
+src/dbagent/core/config.py
+src/dbagent/core/db.py
 src/dbagent/telemetry/__init__.py
+src/dbagent/telemetry/explain.py
+src/dbagent/telemetry/query_stats.py
+src/dbagent/telemetry/tables.py
+tests/test_config.py
+tests/test_detector.py
+tests/test_explain.py
+tests/test_plan_analyzer.py
+tests/test_query_stats.py
