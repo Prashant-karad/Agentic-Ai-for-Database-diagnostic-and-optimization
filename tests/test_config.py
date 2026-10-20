@@ -2,7 +2,7 @@
 
 import pytest
 
-from dbagent.core.config import ConfigError, load_settings
+from dbagent.core.config import ConfigError, load_llm_settings, load_settings
 
 
 def test_reads_url_from_env_file(tmp_path, monkeypatch):
@@ -20,3 +20,24 @@ def test_missing_url_raises_clear_error(tmp_path, monkeypatch):
 
     with pytest.raises(ConfigError, match="MAIN_DB_URL"):
         load_settings(tmp_path / "does_not_exist.env")
+
+
+def test_reads_llm_settings(tmp_path, monkeypatch):
+    for name in ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL"):
+        monkeypatch.delenv(name, raising=False)
+    env_file = tmp_path / ".env"
+    env_file.write_text("LLM_BASE_URL=https://x/v1\nLLM_API_KEY=abc\nLLM_MODEL=m1\n")
+
+    settings = load_llm_settings(env_file)
+
+    assert (settings.base_url, settings.api_key, settings.model) == ("https://x/v1", "abc", "m1")
+
+
+def test_missing_llm_key_raises_clear_error(tmp_path, monkeypatch):
+    for name in ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL"):
+        monkeypatch.delenv(name, raising=False)
+    env_file = tmp_path / ".env"
+    env_file.write_text("LLM_BASE_URL=https://x/v1\nLLM_MODEL=m1\n")
+
+    with pytest.raises(ConfigError, match="LLM_API_KEY"):
+        load_llm_settings(env_file)
