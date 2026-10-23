@@ -1,0 +1,6 @@
+[server]
+headless = true        # don't ask for an email on first run
+port = 8501
+
+[browser]
+gatherUsageStats = false
