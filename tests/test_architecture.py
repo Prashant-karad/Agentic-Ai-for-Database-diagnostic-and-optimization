@@ -1,4 +1,8 @@
-"""Guard the project's structure: the agent and the simulated shop must stay independent."""
+"""Guard the project's structure.
+
+- the agent (dbagent) and the simulated shop (shopsim) never import each other
+- only the dashboard may use both, and nobody imports the dashboard
+"""
 
 import re
 from pathlib import Path
@@ -19,6 +23,14 @@ def imported_packages(package: str) -> set[str]:
     return found
 
 
-@pytest.mark.parametrize("package, forbidden", [("shopsim", "dbagent"), ("dbagent", "shopsim")])
+@pytest.mark.parametrize(
+    "package, forbidden",
+    [
+        ("shopsim", "dbagent"),
+        ("dbagent", "shopsim"),
+        ("shopsim", "dashboard"),
+        ("dbagent", "dashboard"),
+    ],
+)
 def test_packages_do_not_import_each_other(package, forbidden):
     assert forbidden not in imported_packages(package)
