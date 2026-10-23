@@ -63,8 +63,12 @@ def build_user_prompt(
     problems: list[PlanProblem],
     columns: dict[str, list[str]],
     indexes: dict[str, list[str]],
+    feedback: list[str] | None = None,
 ) -> str:
-    """Put all the evidence into one clear message for the LLM."""
+    """Put all the evidence into one clear message for the LLM.
+
+    `feedback` lists earlier attempts that failed, so the LLM does not repeat them.
+    """
     lines = ["Slow query:", query, "", "Execution plan:"]
     lines += plan_text
     lines += ["", "Problems found in the plan:"]
@@ -74,6 +78,9 @@ def build_user_prompt(
         lines.append(f"Table {table}: columns {', '.join(table_columns)}")
         existing = indexes.get(table, [])
         lines.append(f"  Existing indexes: {'; '.join(existing) if existing else 'none'}")
+    if feedback:
+        lines += ["", "Earlier attempts that did NOT work (do not repeat them):"]
+        lines += [f"- {item}" for item in feedback]
     return "\n".join(lines)
 
 
@@ -118,8 +125,9 @@ def propose_fix(
     problems: list[PlanProblem],
     columns: dict[str, list[str]],
     indexes: dict[str, list[str]],
+    feedback: list[str] | None = None,
 ) -> FixProposal:
     """Ask the LLM for a fix and return it only if it passes validation."""
-    user_prompt = build_user_prompt(query, plan_text, problems, columns, indexes)
+    user_prompt = build_user_prompt(query, plan_text, problems, columns, indexes, feedback)
     answer = llm.ask_json(SYSTEM_PROMPT, user_prompt)
     return parse_proposal(answer, allowed_tables=list(columns))

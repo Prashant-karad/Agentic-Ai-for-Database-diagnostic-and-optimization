@@ -6,5 +6,6 @@ Requires-Python: >=3.11
 Requires-Dist: psycopg[binary]<4,>=3.2
 Requires-Dist: python-dotenv>=1.0
 Requires-Dist: openai<3,>=1.40
+Requires-Dist: langgraph>=0.2
 Provides-Extra: dev
 Requires-Dist: pytest>=8; extra == "dev"

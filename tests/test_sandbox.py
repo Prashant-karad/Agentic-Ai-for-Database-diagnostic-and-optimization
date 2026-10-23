@@ -1,4 +1,4 @@
-"""Tests for the sandbox tester (pure logic + a fake sandbox database)."""
+"""Tests for the sandbox tester (pure logic + a mock sandbox database)."""
 
 import pytest
 
@@ -81,9 +81,9 @@ def test_get_index_name():
     assert get_index_name(FIX_SQL) == "idx_orders_customer_created"
 
 
-# ---------- whole flow with a fake sandbox ----------
+# ---------- whole flow with a mock sandbox ----------
 
-class FakeSandboxDatabase:
+class MockSandboxDatabase:
     """Pretends to be the sandbox: slow before the index exists, fast after."""
 
     def __init__(self, fail_on_create: bool = False, planner_uses_index: bool = True):
@@ -112,7 +112,7 @@ class FakeSandboxDatabase:
 
 
 def test_try_fix_measures_before_and_after():
-    sandbox = FakeSandboxDatabase()
+    sandbox = MockSandboxDatabase()
 
     result = try_fix_in_sandbox(sandbox, QUERY, FIX_SQL, [{1: 4242, 2: 10}], runs=3)
 
@@ -126,7 +126,7 @@ def test_try_fix_measures_before_and_after():
 
 
 def test_fix_is_rejected_when_postgres_ignores_the_new_index():
-    sandbox = FakeSandboxDatabase(planner_uses_index=False)
+    sandbox = MockSandboxDatabase(planner_uses_index=False)
 
     result = try_fix_in_sandbox(sandbox, QUERY, FIX_SQL, [{1: 4242, 2: 10}], runs=1)
 
@@ -135,7 +135,7 @@ def test_fix_is_rejected_when_postgres_ignores_the_new_index():
 
 
 def test_try_fix_always_removes_the_index_afterwards():
-    sandbox = FakeSandboxDatabase()
+    sandbox = MockSandboxDatabase()
 
     try_fix_in_sandbox(sandbox, QUERY, FIX_SQL, [{1: 4242, 2: 10}], runs=1)
 
@@ -144,7 +144,7 @@ def test_try_fix_always_removes_the_index_afterwards():
 
 
 def test_sandbox_is_cleaned_up_even_when_the_fix_fails():
-    sandbox = FakeSandboxDatabase(fail_on_create=True)
+    sandbox = MockSandboxDatabase(fail_on_create=True)
 
     with pytest.raises(RuntimeError):
         try_fix_in_sandbox(sandbox, QUERY, FIX_SQL, [{1: 4242, 2: 10}], runs=1)

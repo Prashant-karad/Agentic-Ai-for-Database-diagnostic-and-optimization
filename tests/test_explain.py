@@ -1,11 +1,11 @@
-"""Tests for the EXPLAIN helper, using a fake database (no Postgres needed)."""
+"""Tests for the EXPLAIN helper, using a mock database (no Postgres needed)."""
 
 import pytest
 
 from dbagent.telemetry.explain import UnsafeQueryError, check_select_only, get_plan
 
 
-class FakeDatabase:
+class MockDatabase:
     """Pretends to be Database: records the SQL it receives, returns a canned row."""
 
     def __init__(self, row: dict):
@@ -19,7 +19,7 @@ class FakeDatabase:
 
 def test_get_plan_returns_root_plan_node():
     plan = {"Node Type": "Seq Scan", "Relation Name": "orders"}
-    db = FakeDatabase(row={"QUERY PLAN": [{"Plan": plan}]})
+    db = MockDatabase(row={"QUERY PLAN": [{"Plan": plan}]})
 
     result = get_plan(db, "SELECT * FROM orders WHERE customer_id = $1")
 
@@ -47,7 +47,7 @@ def test_with_query_is_allowed():
     ],
 )
 def test_unsafe_queries_are_rejected_before_reaching_the_database(sql):
-    db = FakeDatabase(row={})
+    db = MockDatabase(row={})
 
     with pytest.raises(UnsafeQueryError):
         get_plan(db, sql)

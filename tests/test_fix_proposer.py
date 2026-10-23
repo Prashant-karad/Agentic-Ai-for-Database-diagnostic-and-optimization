@@ -1,4 +1,4 @@
-"""Tests for the fix proposer, using a fake LLM (no API key needed)."""
+"""Tests for the fix proposer, using a mock LLM (no API key needed)."""
 
 import pytest
 
@@ -25,7 +25,7 @@ INDEXES = {"orders": ["CREATE UNIQUE INDEX orders_pkey ON public.orders USING bt
 GOOD_SQL = "CREATE INDEX idx_orders_customer_created ON orders (customer_id, created_at DESC)"
 
 
-class FakeLLM:
+class MockLLM:
     """Pretends to be LLMClient: returns a prepared answer and records the prompts."""
 
     def __init__(self, answer_text: str):
@@ -48,6 +48,20 @@ def test_prompt_contains_all_the_evidence():
     assert "customer_id integer" in prompt
     assert "orders_pkey" in prompt
 
+
+def test_prompt_includes_feedback_from_failed_attempts():
+    feedback = ["CREATE INDEX idx_a ON orders (status) -> index was not used by Postgres"]
+
+    prompt = build_user_prompt(QUERY, PLAN_TEXT, PROBLEMS, COLUMNS, INDEXES, feedback)
+
+    assert "did NOT work" in prompt
+    assert "idx_a ON orders (status)" in prompt
+
+
+def test_prompt_without_feedback_has_no_feedback_section():
+    prompt = build_user_prompt(QUERY, PLAN_TEXT, PROBLEMS, COLUMNS, INDEXES)
+
+    assert "did NOT work" not in prompt
 
 # ---------- check_create_index_sql ----------
 
@@ -117,10 +131,10 @@ def test_bad_proposals_are_rejected(data):
         parse_proposal(data, allowed_tables=["orders"])
 
 
-# ---------- propose_fix (whole flow, fake LLM) ----------
+# ---------- propose_fix (whole flow, mock LLM) ----------
 
 def test_propose_fix_returns_validated_proposal():
-    llm = FakeLLM(
+    llm = MockLLM(
         '```json\n{"fix_type": "create_index", "sql": "' + GOOD_SQL + '", '
         '"reason": "Lets Postgres jump to one customer, already sorted by date."}\n```'
     )
@@ -134,7 +148,7 @@ def test_propose_fix_returns_validated_proposal():
 
 
 def test_propose_fix_rejects_dangerous_llm_answer():
-    llm = FakeLLM('{"fix_type": "create_index", "sql": "DROP TABLE orders", "reason": "trust me"}')
+    llm = MockLLM('{"fix_type": "create_index", "sql": "DROP TABLE orders", "reason": "trust me"}')
 
     with pytest.raises(InvalidProposalError):
         propose_fix(llm, QUERY, PLAN_TEXT, PROBLEMS, COLUMNS, INDEXES)
