@@ -12,12 +12,13 @@ class Database:
         self.name = name
         self.statement_timeout_ms = statement_timeout_ms
 
-    def _connect(self) -> psycopg.Connection:
+    def _connect(self, autocommit: bool = False) -> psycopg.Connection:
         return psycopg.connect(
             self.url,
             row_factory=dict_row,
             connect_timeout=5,
             options=f"-c statement_timeout={self.statement_timeout_ms}",
+            autocommit=autocommit,
         )
 
     def fetch_all(self, sql: str, params: tuple | dict | None = None) -> list[dict]:
@@ -33,4 +34,9 @@ class Database:
     def execute(self, sql: str, params: tuple | dict | None = None) -> None:
         """Run a statement that changes something (CREATE INDEX, INSERT ...)."""
         with self._connect() as conn:
+            conn.execute(sql, params)
+
+    def execute_autocommit(self, sql: str, params: tuple | dict | None = None) -> None:
+        """Run one statement outside a transaction (CREATE INDEX CONCURRENTLY needs this)."""
+        with self._connect(autocommit=True) as conn:
             conn.execute(sql, params)

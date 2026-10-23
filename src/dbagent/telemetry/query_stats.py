@@ -11,17 +11,18 @@ from datetime import datetime, timezone
 from dbagent.core.db import Database
 
 SNAPSHOT_SQL = """
-SELECT queryid,
+SELECT min(queryid)                AS queryid,
        query,
-       calls,
-       total_exec_time,
-       rows,
-       shared_blks_hit,
-       shared_blks_read
+       sum(calls)::bigint            AS calls,
+       sum(total_exec_time)          AS total_exec_time,
+       sum(rows)::bigint             AS rows,
+       sum(shared_blks_hit)::bigint  AS shared_blks_hit,
+       sum(shared_blks_read)::bigint AS shared_blks_read
 FROM pg_stat_statements
 WHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())
   AND query NOT LIKE '%pg_stat_statements%'
   AND query NOT IN ('BEGIN', 'COMMIT', 'ROLLBACK')
+GROUP BY query
 """
 
 

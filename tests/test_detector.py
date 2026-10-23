@@ -4,8 +4,11 @@ import pytest
 
 from dbagent.agents.query_optimizer.detector import (
     DetectorConfig,
+    confirmed_slow_queries,
     detect_slow_queries,
     update_baselines,
+    update_streaks,
+    worst_query,
 )
 from dbagent.telemetry.query_stats import QueryWindow
 
@@ -15,6 +18,7 @@ CONFIG = DetectorConfig(
     regression_factor=2.0,
     min_regression_ms=5.0,
     baseline_alpha=0.2,
+    confirm_after=2,
 )
 
 
@@ -93,3 +97,48 @@ def test_update_does_not_modify_the_input_dict():
     update_baselines(original, [make_window(1, mean_ms=20.0)], flagged_ids=set(), alpha=0.2)
 
     assert original == {1: 10.0}
+
+
+# ---------- confirmation: slow several windows in a row ----------
+
+def test_streak_grows_while_a_query_stays_flagged():
+    streaks = {}
+    for _ in range(3):
+        streaks = update_streaks(streaks, [make_window(1, mean_ms=100)], flagged_ids={1})
+
+    assert streaks[1] == 3
+
+
+def test_streak_resets_when_the_query_is_fine_again():
+    streaks = update_streaks({1: 2}, [make_window(1, mean_ms=1)], flagged_ids=set())
+
+    assert streaks[1] == 0
+
+
+def test_streak_kept_when_too_few_calls_to_judge():
+    streaks = update_streaks({1: 1}, [make_window(1, mean_ms=1, calls=1)], flagged_ids=set(), min_calls=3)
+
+    assert streaks[1] == 1
+
+
+def test_one_noisy_window_is_not_confirmed():
+    window = make_window(1, mean_ms=100)
+    flagged = detect_slow_queries([window], {}, CONFIG)
+
+    first = update_streaks({}, [window], {1})
+    second = update_streaks(first, [window], {1})
+
+    assert confirmed_slow_queries(flagged, first, CONFIG) == []
+    assert len(confirmed_slow_queries(flagged, second, CONFIG)) == 1
+
+
+def test_worst_query_is_the_one_costing_most_total_time():
+    flagged = detect_slow_queries(
+        [make_window(1, mean_ms=300, calls=2), make_window(2, mean_ms=60, calls=100)], {}, CONFIG
+    )
+
+    assert worst_query(flagged).window.queryid == 2       # 6000 ms in total beats 600 ms
+
+
+def test_worst_query_of_nothing_is_none():
+    assert worst_query([]) is None
